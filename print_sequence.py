@@ -32,7 +32,70 @@ def generate_unit_map():
             # print('skipping {}'.format(type(unit)))
             continue
         units[unit.id] = unit
-    
+
+def get_kind_for_unit(line, qualifier_unit):
+    kind = 'unknown'
+    extras = ''
+    full_id = line
+    if "::" not in full_id:
+        qid = qualifier_unit.qualify_id(full_id)
+        full_id = qid
+    if '::after-suspend' in full_id:
+        full_id = full_id.replace('::after-suspend-', '::')
+        extras = '  <= {} REMOVED "after-suspend-" PREFIX'.format(full_id)
+            
+    if full_id in units.keys():
+        plugin = units[full_id].plugin
+        if plugin in ['shell', 'resource', 'attachment']:
+            kind = 'automatic'
+        else:
+            kind = 'manual'
+        if units[full_id].depends:
+            for dep_id in units[full_id].depends.split():
+                dep_kind, _ = get_kind_for_unit(dep_id, units[full_id]) 
+                if dep_kind == 'manual':
+                    if kind == 'automatic':
+                        extras = 'manual b/c of dep on {}'.format(dep_id) + extras
+                    kind = 'manual'
+
+
+
+    if kind == 'unknown':
+        candidates = []
+        for tid, tunit in template_units.items():
+            matches = re.match(tunit.re_matcher, full_id)
+            if matches:
+                candidates.append(tunit)
+        if not candidates:
+            for tid, tunit in template_units.items():
+                matches = re.match(tunit.re_greedy, full_id)
+                if matches:
+                    candidates.append(tunit)
+
+        tunit = None
+        if len(candidates) == 1:
+            tunit = candidates[0]
+        elif len(candidates) > 1:
+            from difflib import SequenceMatcher
+            tid = sorted([c.id for c in candidates], key=lambda a: SequenceMatcher(
+                None, a, line).ratio(), reverse=True)[0]
+            tunit = template_units[tid]
+
+        if tunit:
+            if tunit.get_record_value('plugin') in ['shell', 'resource', 'attachment']:
+                kind = 'automatic'
+            else:
+                kind = 'manual'
+            if tunit.get_record_value('depends'):
+                for dep_id in tunit.get_record_value('depends').split():
+                    dep_kind, _ = get_kind_for_unit(dep_id, tunit)
+                    if dep_kind == 'manual':
+                        if kind == 'automatic':
+                            extras = 'manual b/c of dep on {}'.format(dep_id) + extras
+                        kind = 'manual'
+            extras = '   <= {}'.format(tunit.id)
+    return kind, extras
+
 
 
 def get_run_sequence(tp_unit, include_nested = True):
@@ -48,52 +111,9 @@ def get_run_sequence(tp_unit, include_nested = True):
         if line.startswith('#'):
             continue
         line = line.split()[0]
-        kind = 'unknown'
-        extras = ''
-        full_id = line
-        if "::" not in full_id:
-            qid = tp_unit.qualify_id(line)
-            full_id = qid
-        if '::after-suspend' in full_id:
-            full_id = full_id.replace('::after-suspend-', '::')
-            extras = '  <= {} REMOVED "after-suspend-" PREFIX'.format(full_id)
-                
-        if full_id in units.keys():
-            plugin = units[full_id].plugin
-            if plugin in ['shell', 'resource', 'attachment']:
-                kind = 'automatic'
-            else:
-                kind = 'manual'
-        if kind == 'unknown':
-            candidates = []
-            for tid, tunit in template_units.items():
-                matches = re.match(tunit.re_matcher, full_id)
-                if matches:
-                    candidates.append(tunit)
-            if not candidates:
-                for tid, tunit in template_units.items():
-                    matches = re.match(tunit.re_greedy, full_id)
-                    if matches:
-                        candidates.append(tunit)
+        kind, extras = get_kind_for_unit(line, tp_unit)
 
-            tunit = None
-            if len(candidates) == 1:
-                tunit = candidates[0]
-            elif len(candidates) > 1:
-                from difflib import SequenceMatcher
-                tid = sorted([c.id for c in candidates], key=lambda a: SequenceMatcher(
-                    None, a, line).ratio(), reverse=True)[0]
-                tunit = template_units[tid]
-
-            if tunit:
-                if tunit.get_record_value('plugin') in ['shell', 'resource', 'attachment']:
-                    kind = 'automatic'
-                else:
-                    kind = 'manual'
-                extras = '   <= {}'.format(tunit.id)
-
-
-        result.append((full_id, kind, extras))
+        result.append((line, kind, extras))
     return result
 
     
@@ -167,6 +187,8 @@ def main():
     #print(len(get_jobs_from_tp(tp_unit)))
 
     #import pdb; pdb.set_trace()
+    #print(get_kind_for_unit('audio/playback_auto', tp_unit))
+
     for uid, kind, extras in get_run_sequence(tp_unit):
         print('{0:10}{1}{2: >130}'.format(kind, uid, extras).strip())
 
