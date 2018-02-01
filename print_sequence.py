@@ -110,6 +110,9 @@ def get_run_sequence(tp_unit, include_nested = True):
             
         if line.startswith('#'):
             continue
+        sections = line.split()
+        annotations = line[len(sections[0]):]
+        line = sections[0]
         line = line.split()[0]
         kind, extras = get_kind_for_unit(line, tp_unit)
 
