@@ -19,6 +19,8 @@ def unqualify_id(tp_unit, uid):
     namespace = tp_unit.qualify_id('')
     if uid.startswith(namespace):
         return  uid.replace(namespace, '')
+    else:
+        return uid
 
 
 def print_missing(all_tps):
