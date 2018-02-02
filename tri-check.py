@@ -73,10 +73,17 @@ def write_tp_unit(tpu):
 
 def check_tp(tpid, all_tps):
     tp_unit = sa.get_test_plan(tpid)
-    seq = get_run_sequence(tp_unit, True)
-    manuals = [uid for uid, kind, extras in seq if kind == 'manual']
-    autos = [uid for uid, kind, extras in seq if kind == 'automatic']
-    unknowns = [uid for uid, kind, extras in seq if kind == 'unknown']
+    manuals = []
+    autos = []
+    unknowns = []
+    for unit in get_run_sequence(tp_unit, True):
+        if unit.kind == 'manual':
+            manuals.append(unit)
+        if unit.kind == 'automatic':
+            autos.append(unit)
+        if unit.kind == 'unknown':
+            unknowns.append(unit)
+
     manual_tp = tpid[:-4] + 'manual' 
     new_man_pxu = ""
     new_auto_pxu = ""
@@ -85,14 +92,14 @@ def check_tp(tpid, all_tps):
         print("missing {}".format(manual_tp))
         new_man_tp = TestPlanUnit(tp_unit._raw_data)
         # remove the namespace prefix
-        unqualified_ids = []
-        for uid in manuals:
+        include_entries = []
+        for unit in manuals:
             namespace = tp_unit.qualify_id('')
-            if uid.startswith(namespace):
-                uid = uid.replace(namespace, '')
-            unqualified_ids.append(uid)
+            if unit.id.startswith(namespace):
+                unit.id = unit.id.replace(namespace, '')
+            include_entries.append(unit.id + unit.annotations)
         new_man_tp.id = unqualify_id(tp_unit, manual_tp)
-        new_man_tp.include = "\n".join(unqualified_ids)
+        new_man_tp.include = "\n".join(include_entries)
         new_man_tp.name += ' (Manual)'
         new_man_tp.description += ' (Manual)'
         new_man_pxu = write_tp_unit(new_man_tp)
@@ -109,18 +116,18 @@ def check_tp(tpid, all_tps):
         # print("missing {}".format(auto_tp))
         new_auto_tp = TestPlanUnit(tp_unit._raw_data)
         # remove the namespace prefix
-        unqualified_ids = []
-        for uid in autos:
-            unqualified_ids.append(unqualify_id(tp_unit, uid))
+        include_entries = []
+        for unit in autos:
+            unqualified_ids.append(unqualify_id(tp_unit, unit.id))
         new_auto_tp.id = unqualify_id(tp_unit, auto_tp)
-        new_auto_tp.include = "\n".join(unqualified_ids)
+        new_auto_tp.include = "\n".join(include_entries)
         new_auto_tp.name += ' (Automated)'
         new_auto_tp.description += ' (Automated)'
         new_auto_pxu = write_tp_unit(new_auto_tp)
     else:
         print("{} already there")
         auto_seq = get_run_sequence(sa.get_test_plan(auto_tp))
-        auto_seq_ids = [uid for uid, kind, extras in auto_seq]
+        auto_seq_ids = [unit.id for unit in auto_seq]
         if auto_seq_ids != autos:
             print("BUT HAS WRONG INCLUDE")
             print("FULL:\n{}\n\n VS \n\AUTOMATED:\n{}".format(

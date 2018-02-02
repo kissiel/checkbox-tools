@@ -2,6 +2,7 @@
 
 import re
 import sys
+from collections import namedtuple
 from plainbox.abc import IJobQualifier
 from plainbox.impl.session.assistant import SessionAssistant
 from plainbox.impl.unit.unit_with_id import UnitWithId
@@ -96,6 +97,7 @@ def get_kind_for_unit(line, qualifier_unit):
             extras = '   <= {}'.format(tunit.id)
     return kind, extras
 
+UnitProxy = namedtuple('UnitProxy', ['id', 'kind', 'extras', 'annotations'])
 
 
 def get_run_sequence(tp_unit, include_nested = True):
@@ -116,7 +118,8 @@ def get_run_sequence(tp_unit, include_nested = True):
         line = line.split()[0]
         kind, extras = get_kind_for_unit(line, tp_unit)
 
-        result.append((line, kind, extras))
+        result.append(UnitProxy(line, kind, extras, annotations))
+
     return result
 
     
@@ -192,7 +195,7 @@ def main():
     #import pdb; pdb.set_trace()
     #print(get_kind_for_unit('audio/playback_auto', tp_unit))
 
-    for uid, kind, extras in get_run_sequence(tp_unit):
+    for uid, kind, extras, annotations in get_run_sequence(tp_unit):
         print('{0:10}{1}{2: >130}'.format(kind, uid, extras).strip())
 
 
