@@ -104,34 +104,41 @@ def check_tp(tpid, all_tps):
         new_man_tp.description += ' (Manual)'
         new_man_pxu = write_tp_unit(new_man_tp)
     else:
-        print("{} already there")
+        print("{} already there".format(manual_tp))
         man_seq = get_run_sequence(sa.get_test_plan(manual_tp))
         man_seq_ids = [uid for uid, kind, extras in man_seq]
-        if man_seq_ids != manuals:
+        new_seq = [unit.id for unit in manuals]
+        if man_seq_ids != new_seq:
             print("BUT HAS WRONG INCLUDE")
             print("FULL:\n{}\n\n VS \n\nMANUAL:\n{}".format(
-                "\n".join(manuals), "\n".join(man_seq_ids)))
+                "\n".join(new_seq), "\n".join(man_seq_ids)))
     auto_tp = tpid[:-4] + 'automated' 
     if auto_tp not in all_tps:
-        # print("missing {}".format(auto_tp))
+        print("missing {}".format(auto_tp))
         new_auto_tp = TestPlanUnit(tp_unit._raw_data)
         # remove the namespace prefix
         include_entries = []
         for unit in autos:
-            unqualified_ids.append(unqualify_id(tp_unit, unit.id))
+            namespace = tp_unit.qualify_id('')
+            if unit.id.startswith(namespace):
+                unit.id = unit.id.replace(namespace, '')
+            include_entries.append(unit.id + unit.annotations)
         new_auto_tp.id = unqualify_id(tp_unit, auto_tp)
         new_auto_tp.include = "\n".join(include_entries)
         new_auto_tp.name += ' (Automated)'
         new_auto_tp.description += ' (Automated)'
         new_auto_pxu = write_tp_unit(new_auto_tp)
     else:
-        print("{} already there")
+        print("{} already there".format(auto_tp))
         auto_seq = get_run_sequence(sa.get_test_plan(auto_tp))
         auto_seq_ids = [unit.id for unit in auto_seq]
-        if auto_seq_ids != autos:
-            print("BUT HAS WRONG INCLUDE")
+        new_seq = [unit.id for unit in autos]
+
+
+        if auto_seq_ids != new_seq:
+            print("BUT HAS DIFFERENT INCLUDE")
             print("FULL:\n{}\n\n VS \n\AUTOMATED:\n{}".format(
-                "\n".join(autos), "\n".join(auto_seq_ids)))
+                "\n".join(new_seq), "\n".join(auto_seq_ids)))
     if not new_man_pxu and not new_auto_pxu:
         return
     tp_unit.include = ""
@@ -151,11 +158,13 @@ def check_tp(tpid, all_tps):
     new_pxu = pxu[:tp_unit.origin.line_start-1]
     new_pxu.append(new_full_pxu)
     new_pxu.append("\n")
-    new_pxu.append(new_man_pxu)
-    new_pxu.append("\n")
-    new_pxu.append(new_auto_pxu)
-    new_pxu.append("\n")
-    new_pxu += pxu[tp_unit.origin.line_end-1:]
+    if new_man_pxu:
+        new_pxu.append(new_man_pxu)
+        new_pxu.append("\n")
+    if new_auto_pxu:
+        new_pxu.append(new_auto_pxu)
+        new_pxu.append("\n")
+    new_pxu += pxu[tp_unit.origin.line_end:]
     with open(tp_unit.origin.source.filename, 'wt') as f:
         f.write("".join(new_pxu))
     print("{} rewritten!".format(tp_unit.origin.source.filename))
@@ -173,7 +182,8 @@ def check_tp(tpid, all_tps):
 def main():
     sa.select_providers('*')
     sa.start_new_session('tri_check')
-    all_tps = sa.get_test_plans()
+    all_available_tps = sa.get_test_plans()
+    all_tps = all_available_tps
     init()
     if len(sys.argv) > 1:
         all_tps = sys.argv[1:]
@@ -183,7 +193,7 @@ def main():
             # print('analyzing {}'.format(tp))
             tp_unit = sa.get_test_plan(tp)
             if not tp_unit.nested_part:
-                check_tp(tp, all_tps)
+                check_tp(tp, all_available_tps)
                 #print(tp)
             #write_tp_unit(tp_unit)
             #seq = get_run_sequence(tp_unit, False)
