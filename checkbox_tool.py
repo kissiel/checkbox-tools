@@ -111,6 +111,12 @@ class CheckboxTool:
                     matches = re.match(tunit.re_greedy, full_id)
                     if matches:
                         candidates.append(tunit)
+            if not candidates:
+                # ordinary matching: from include regex to template_ids
+                for tid, tunit in self.template_units.items():
+                    matches = re.match(full_id, tid)
+                    if matches:
+                        candidates.append(tunit)
 
             tunit = None
             if len(candidates) == 1:
