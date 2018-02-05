@@ -198,7 +198,7 @@ class CheckboxTool:
         else:
             print("{} already there".format(manual_tp))
             man_seq = self.get_run_sequence(manual_tp)
-            man_seq_ids = [uid for uid, kind, extras in man_seq]
+            man_seq_ids = [unit.id for unit in man_seq]
             new_seq = [unit.id for unit in manuals]
             if man_seq_ids != new_seq:
                 print("BUT HAS WRONG INCLUDE")
