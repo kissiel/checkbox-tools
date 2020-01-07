@@ -1,0 +1,31 @@
+unit: test plan
+id: templatey-tp
+_name: Test Plan with plenty of generated jobs
+include:
+ lemming.*
+bootstrap_include:
+ generator
+
+unit: test plan
+id: long-bootstrap-then-nuffin
+_name: Test Plan with a lot to bootstrap but nothing to run
+include:
+ nuffin
+bootstrap_include:
+ generator
+
+unit: template
+template-resource: generator
+id: {id}
+_summary: Just run true ({id})
+command: true
+plugin: shell
+
+id: generator
+plugin: resource
+command:
+ for i in $(seq 1000); do
+   echo id: lemming-$i
+   echo
+ done
+

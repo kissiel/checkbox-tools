@@ -1,0 +1,14 @@
+#!/usr/bin/env checkbox-cli
+[launcher]
+launcher_version = 1
+stock_reports =
+
+[test plan]
+unit = 2019.com.canonical.certification::templatey-tp
+forced = yes
+
+[test selection]
+forced = yes
+
+[ui]
+type = silent
