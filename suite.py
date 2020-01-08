@@ -47,7 +47,8 @@ class BenchmarkingTask:
                 os.chdir(tmp)
                 for scenario in ['small', 'templatey', 'bootstrap-only']:
                     out = subprocess.check_output(['python3', 'benchmark.py', scenario])
-                    print(out)
+                    elapsed = float(out.splitlines()[-1])
+                    print('{} - {} : {}'.format(self._commit, scenario, elapsed))
             finally:
                 os.chdir(base_dir)
             return

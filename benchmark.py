@@ -17,13 +17,12 @@ def main():
         raise SystemExit("Usage: {} SCENARIO".format(sys.argv[0]))
 
     shutil.rmtree('venv', ignore_errors=True)
-    subprocess.run("./mk-venv")
-    subprocess.run(". venv/bin/activate; ./2019.com.canonical.certification:metabench/manage.py develop -d $PROVIDERPATH", shell=True)
+    subprocess.run("./mk-venv", stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    subprocess.run(". venv/bin/activate; ./2019.com.canonical.certification:metabench/manage.py develop -d $PROVIDERPATH", shell=True, stdout=subprocess.DEVNULL)
     launcher = "./2019.com.canonical.certification:metabench/launcher-{}".format(sys.argv[1])
 
     start = time.time()
     output = subprocess.check_output(". venv/bin/activate; {}".format(launcher), shell=True, stderr=subprocess.STDOUT)
-    print(output)
     print(time.time() - start)
 
 if __name__ == '__main__':
