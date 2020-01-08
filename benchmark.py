@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import shutil
 import subprocess
 import sys
@@ -22,6 +23,7 @@ def main():
 
     start = time.time()
     output = subprocess.check_output(". venv/bin/activate; {}".format(launcher), shell=True, stderr=subprocess.STDOUT)
+    print(output)
     print(time.time() - start)
 
 if __name__ == '__main__':
