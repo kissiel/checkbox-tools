@@ -7,10 +7,10 @@ bootstrap_include:
  generator
 
 unit: test plan
-id: long-bootstrap-then-nuffin
+id: long-bootstrap-then-nothing
 _name: Test Plan with a lot to bootstrap but nothing to run
 include:
- nuffin
+ nothing
 bootstrap_include:
  generator
 

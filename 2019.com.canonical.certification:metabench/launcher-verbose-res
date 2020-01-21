@@ -4,7 +4,7 @@ launcher_version = 1
 stock_reports =
 
 [test plan]
-unit = 2019.com.canonical.certification::long-bootstrap-then-nothing
+unit = 2019.com.canonical.certification::verbose-tp
 forced = yes
 
 [test selection]

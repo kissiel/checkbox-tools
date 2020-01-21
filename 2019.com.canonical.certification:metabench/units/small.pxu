@@ -1,6 +1,6 @@
 unit: test plan
 id: small-tp
-_name: Small tet plan with one job
+_name: Small test plan with one job
 include: one-job
 
 id: one-job

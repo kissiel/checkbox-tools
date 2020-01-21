@@ -1,0 +1,14 @@
+unit: test plan
+id: verbose-tp
+_name: Test plan with a verbose bootstrapping 
+bootstrap_include:
+ verbose-resource
+include:
+
+id: verbose-resource
+plugin: resource
+command: 
+ for i in $(seq 10000); do
+   echo id: record-$i
+   echo
+ done
