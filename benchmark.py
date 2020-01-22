@@ -14,19 +14,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with Checkbox.  If not, see <http://www.gnu.org/licenses/>.
-
-import contextlib
-import glob
-import os
-import signal
-import shutil
-import subprocess
-import sys
-import tempfile
-import time
-
-from pprint import pprint
-
 """
 Benchmark Checkbox with different scenarios.
 
@@ -35,16 +22,31 @@ it.  Place this file and the benchmarking-provider provider in the checkbox-ng
 tree and run it.
 """
 
+import contextlib
+import glob
+import os
+import signal
+import subprocess
+import sys
+import tempfile
+import time
+
+from pprint import pprint
+
+
 def prepare_venv(venv_path):
-    subprocess.run(['./mk-venv', venv_path],
-        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    """Create venv and develop the benchmarking provider in it."""
+    subprocess.run(
+        ['./mk-venv', venv_path],
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
     manage_py = 'benchmarking-provider/manage.py'
-    subprocess.run(". {}; {} develop -d $PROVIDERPATH".format(
-        os.path.join(venv_path, 'bin', 'activate'), manage_py),
-        shell=True, stdout=subprocess.DEVNULL)
+    subprocess.run(
+        ". {}; {} develop -d $PROVIDERPATH".format(
+            os.path.join(venv_path, 'bin', 'activate'), manage_py),
+        shell=True, stdout=subprocess.DEVNULL, check=True)
 
 def run_via_remote(launcher):
-    # start the slave
+    """Launch a slave and run `launcher` via master on that slave."""
     try:
         slave_proc = subprocess.Popen(
             '. venv/bin/activate; checkbox-cli slave',
@@ -52,7 +54,7 @@ def run_via_remote(launcher):
     except subprocess.CalledProcessError as exc:
         raise SystemExit("Failed to run the slave")
     with contextlib.ExitStack() as stack:
-        def kill_slave(*args):
+        def kill_slave(*_):
             with contextlib.suppress(ProcessLookupError):
                 os.killpg(os.getpgid(slave_proc.pid), signal.SIGTERM)
         stack.push(kill_slave)
@@ -60,30 +62,31 @@ def run_via_remote(launcher):
             start = time.time()
             subprocess.run(
                 ". venv/bin/activate; checkbox-cli master localhost {}".format(
-                    launcher), shell=True, stderr=subprocess.STDOUT)
+                    launcher), shell=True, stderr=subprocess.STDOUT, check=True)
             stop = time.time()
         except subprocess.CalledProcessError as exc:
             print(exc.stdout.decode(sys.stdout.encoding))
             raise SystemExit("Failed to remotely run launcher {}".format(
-                scenario))
+                launcher))
         if slave_proc.poll() is not None:
             raise SystemExit("Slave died by its own. Benchmarking failed")
     return stop - start
 
 def run_locally(launcher):
+    """Launch given launcher locally."""
     try:
         start = time.time()
         subprocess.run(". venv/bin/activate; checkbox-cli {}".format(
-            launcher), shell=True, stderr=subprocess.STDOUT)
+            launcher), shell=True, stderr=subprocess.STDOUT, check=True)
         stop = time.time()
     except subprocess.CalledProcessError as exc:
         print(exc.stdout.decode(sys.stdout.encoding))
-        raise SystemExit("Failed to remotely run launcher {}".format(scenario))
+        raise SystemExit("Failed to remotely run launcher {}".format(launcher))
     return stop - start
 
 def main():
+    """Entry point."""
     with tempfile.TemporaryDirectory(prefix='cbox-bench') as tmpdir:
-        venv_path = os.path.join(tmpdir, 'venv')
         bench_dir = os.path.split(os.path.abspath(__file__))[0]
         os.chdir(bench_dir)
         launchers = glob.glob('benchmarking-provider/launcher-*')
@@ -101,4 +104,3 @@ def main():
         pprint(results)
 if __name__ == '__main__':
     main()
-
