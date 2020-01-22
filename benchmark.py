@@ -45,13 +45,14 @@ def prepare_venv(venv_path):
             os.path.join(venv_path, 'bin', 'activate'), manage_py),
         shell=True, stdout=subprocess.DEVNULL, check=True)
 
+
 def run_via_remote(launcher):
     """Launch a slave and run `launcher` via master on that slave."""
     try:
         slave_proc = subprocess.Popen(
             '. venv/bin/activate; checkbox-cli slave',
             shell=True, start_new_session=True)
-    except subprocess.CalledProcessError as exc:
+    except subprocess.CalledProcessError:
         raise SystemExit("Failed to run the slave")
     with contextlib.ExitStack() as stack:
         def kill_slave(*_):
@@ -62,7 +63,8 @@ def run_via_remote(launcher):
             start = time.time()
             subprocess.run(
                 ". venv/bin/activate; checkbox-cli master localhost {}".format(
-                    launcher), shell=True, stderr=subprocess.STDOUT, check=True)
+                    launcher), shell=True,
+                stderr=subprocess.STDOUT, check=True)
             stop = time.time()
         except subprocess.CalledProcessError as exc:
             print(exc.stdout.decode(sys.stdout.encoding))
@@ -71,6 +73,7 @@ def run_via_remote(launcher):
         if slave_proc.poll() is not None:
             raise SystemExit("Slave died by its own. Benchmarking failed")
     return stop - start
+
 
 def run_locally(launcher):
     """Launch given launcher locally."""
@@ -84,23 +87,28 @@ def run_locally(launcher):
         raise SystemExit("Failed to remotely run launcher {}".format(launcher))
     return stop - start
 
+
 def main():
     """Entry point."""
     with tempfile.TemporaryDirectory(prefix='cbox-bench') as tmpdir:
         bench_dir = os.path.split(os.path.abspath(__file__))[0]
         os.chdir(bench_dir)
         launchers = glob.glob('benchmarking-provider/launcher-*')
-        scenarios = [
-            s.replace('benchmarking-provider/launcher-', '') for s in launchers]
+        scenarios = [s.replace(
+            'benchmarking-provider/launcher-', '') for s in launchers]
         results = dict()
         prepare_venv(os.path.join(tmpdir, 'venv'))
         for scenario in scenarios:
             local_result = run_locally(os.path.join(
-                bench_dir, 'benchmarking-provider', 'launcher-{}'.format(scenario)))
+                bench_dir, 'benchmarking-provider',
+                'launcher-{}'.format(scenario)))
             remote_result = run_via_remote(os.path.join(
-                bench_dir, 'benchmarking-provider', 'launcher-{}'.format(scenario)))
+                bench_dir, 'benchmarking-provider',
+                'launcher-{}'.format(scenario)))
             results['local-{}'.format(scenario)] = local_result
             results['remote-{}'.format(scenario)] = remote_result
         pprint(results)
+
+
 if __name__ == '__main__':
     main()
